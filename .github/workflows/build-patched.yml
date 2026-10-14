@@ -1,0 +1,48 @@
+name: Build patched SideStore
+
+# Copy of SideStore develop (12ff39c) with one patch for the Immich Backup app:
+# SideSign also signs ExtensionKit extensions in Extensions/ (patches/sidesign-extensions.patch).
+on:
+  workflow_dispatch:
+  push:
+    branches: [immich-backup-patch]
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - run: brew install ldid xcbeautify
+
+      - name: Apply SideSign patch
+        run: git -C Dependencies/SideSign apply --verbose ../../patches/sidesign-extensions.patch
+
+      - name: Set version
+        run: |
+          V="$(python3 scripts/ci/workflow.py get-marketing-version)-extfix.${{ github.run_number }}"
+          python3 scripts/ci/workflow.py set-marketing-version "$V"
+          echo "MARKETING_VERSION=$V" >> $GITHUB_ENV
+
+      - uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: "26.2"
+
+      - name: Build
+        run: python3 scripts/ci/workflow.py build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SideStore-${{ env.MARKETING_VERSION }}
+          path: SideStore.ipa
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: build/logs
