@@ -30,7 +30,7 @@ jobs:
 
       - uses: maxim-lobanov/setup-xcode@v1.6.0
         with:
-          xcode-version: "26.2"
+          xcode-version: "26.4"
 
       - name: Build
         run: python3 scripts/ci/workflow.py build
