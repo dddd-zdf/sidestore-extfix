@@ -50,6 +50,7 @@ final class PairingFileManager: NSObject {
     }
 
     nonisolated func hasPairingFile() -> Bool {
+        adoptLegacyPairingFile()
         guard !UserDefaults.standard.isPairingReset else { return false }
         if let target = preferredProtocol, hasPairingFile(for: target) {
             return true
@@ -57,7 +58,21 @@ final class PairingFileManager: NSObject {
         if let mode = persistedActiveProtocol, hasPairingFile(for: mode) {
             return true
         }
-        return false
+        // Nothing chosen yet (fresh install): use whichever file is there.
+        return hasPairingFile(for: .lockdown) || hasPairingFile(for: .rppairing)
+    }
+
+    /// iloader drops ALTPairingFile.mobiledevicepairing into Documents at any time, but the
+    /// one-time maintenance migration only splits it on the first launch. Adopt it whenever it appears.
+    nonisolated private func adoptLegacyPairingFile() {
+        let legacyURL = FileManager.default.documentsDirectory.appendingPathComponent(AppConstants.Pairing.legacyPairingFileName)
+        guard let content = try? String(contentsOf: legacyURL), !content.isEmpty else { return }
+        for mode in [PairingProtocol.lockdown, .rppairing] where (try? parse(content: content, preferred: mode)) != nil {
+            try? content.write(to: pairingFileURL(for: mode), atomically: true, encoding: .utf8)
+            debugLog("[PairingFile] Adopted legacy pairing file as \(mode.rawValue).")
+        }
+        try? FileManager.default.removeItem(at: legacyURL)
+        UserDefaults.standard.isPairingReset = false
     }
 
     nonisolated func metadata(for mode: PairingProtocol) -> PairingFileMetadata {
@@ -86,15 +101,17 @@ final class PairingFileManager: NSObject {
     }
 
     nonisolated func fetchPairingFile(preferred: PairingProtocol? = nil) -> String? {
+        adoptLegacyPairingFile()
         guard !UserDefaults.standard.isPairingReset else { return nil }
         let targetPreferred = preferred ?? preferredProtocol
         if let targetPreferred, let contents = fetchPairingFile(for: targetPreferred) {
             return contents
         }
-        if let persisted = persistedActiveProtocol {
-            return fetchPairingFile(for: persisted)
+        if let persisted = persistedActiveProtocol, let contents = fetchPairingFile(for: persisted) {
+            return contents
         }
-        return nil
+        // Nothing chosen yet (fresh install): use whichever file is there.
+        return fetchPairingFile(for: .lockdown) ?? fetchPairingFile(for: .rppairing)
     }
     
     @discardableResult
@@ -102,9 +119,20 @@ final class PairingFileManager: NSObject {
         try PairingFileParser.parse(content: content, preferred: preferred)
     }
 
+    /// A file with both Lockdown and Remote Pairing keys (iloader makes these) is ambiguous without a
+    /// protocol; the import paths passed none, so importing it always failed. Fall back to the
+    /// preferred, then active, then Lockdown protocol.
+    nonisolated func parseResolvingAmbiguity(content: String, preferred: PairingProtocol? = nil) throws -> any PairingFile {
+        do {
+            return try parse(content: content, preferred: preferred)
+        } catch PairingError.ambiguous {
+            return try parse(content: content, preferred: preferredProtocol ?? persistedActiveProtocol ?? .lockdown)
+        }
+    }
+
     @discardableResult
     func savePairingFile(contents: String, preferred: PairingProtocol? = nil) throws -> any PairingFile {
-        let parsed = try parse(content: contents, preferred: preferred)
+        let parsed = try parseResolvingAmbiguity(content: contents, preferred: preferred)
         let destinationURL = pairingFileURL(for: parsed.mode)
         let fm = FileManager.default
         if fm.fileExists(atPath: destinationURL.path) {
@@ -116,7 +144,7 @@ final class PairingFileManager: NSObject {
         return parsed
     }
 
-    func inspectPairingFile(from url: URL) throws -> (content: String, file: any PairingFile) {
+    func inspectPairingFile(from url: URL, preferred: PairingProtocol? = nil) throws -> (content: String, file: any PairingFile) {
         let isSecured = url.startAccessingSecurityScopedResource()
         defer {
             if isSecured {
@@ -127,12 +155,12 @@ final class PairingFileManager: NSObject {
         guard let content = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)
         }
-        let parsed = try parse(content: content, preferred: nil)
+        let parsed = try parseResolvingAmbiguity(content: content, preferred: preferred)
         return (content, parsed)
     }
 
     func importPairingFile(from url: URL, preferred: PairingProtocol? = nil) throws {
-        let (content, _) = try inspectPairingFile(from: url)
+        let (content, _) = try inspectPairingFile(from: url, preferred: preferred)
         let parsed = try savePairingFile(contents: content, preferred: preferred)
         persistedActiveProtocol = parsed.mode
     }
