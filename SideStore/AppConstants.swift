@@ -69,8 +69,8 @@ public enum AppConstants {
         public static var defaultODAMetadataURLString: String { defaultODAMetadataURL.absoluteString }
 
         // Proxied from upstream SideSign
-        public static let defaultClientInfo           = Constants.Anisette.defaultClientInfo
-        public static let defaultUserAgent            = Constants.Anisette.defaultUserAgent
+        public static let defaultClientInfo           = "<PC> <Windows;6.2(0,0);9200> <com.apple.AuthKit/1 (com.apple.iTunes/12.12.4.1)>"  // Jkcoxson (Windows) client info
+        public static let defaultUserAgent            = "akd/1.0 CFNetwork/808.1.4"
 
         public enum URLs {
             public static let grandSlamLookup = Constants.Anisette.URLs.grandSlamLookup
@@ -95,8 +95,8 @@ public enum AppConstants {
         }
 
         public enum Servers {
-            public static let defaultSource        = "https://servers.sidestore.io/servers.json"
-            public static let defaultServerURL     = "https://ani.sidestore.io"
+            public static let defaultSource        = "https://example.com/anisette-servers.json"
+            public static let defaultServerURL     = "https://ani.jkcoxson.com"
             public static let connectivityCheckURL = URL(string: "https://www.apple.com/library/test/success.html")!
         }
 

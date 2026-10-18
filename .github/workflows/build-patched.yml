@@ -2,6 +2,7 @@ name: Build patched SideStore
 
 # Copy of SideStore develop (12ff39c) with one patch for the Immich Backup app:
 # SideSign also signs ExtensionKit extensions in Extensions/ (patches/sidesign-extensions.patch).
+# Anisette defaults: Jkcoxson server, the anisette server list, Windows client info (SideStore/AppConstants.swift).
 on:
   workflow_dispatch:
   push:
