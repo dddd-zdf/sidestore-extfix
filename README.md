@@ -21,6 +21,9 @@ Changes from upstream:
 3. If Apple sign-in fails: Settings > Anisette Servers, pick **Jkcoxson**; under User Customizations >
    Anisette Client Configuration, Fetch, then Save as Overrides; reset adi.pb and sign in again.
 
+**Vibe-coded:** the changes in this fork were written largely with an AI coding assistant. They're
+tested live on the author's own iPhone, but use this build at your own risk.
+
 This fork follows SideStore develop until the fix is upstream. Not affiliated with the SideStore team.
 License: AGPL-3.0, same as SideStore.
 
