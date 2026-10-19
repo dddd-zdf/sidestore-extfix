@@ -1,0 +1,6 @@
+{
+  "servers": [
+    { "name": "Jkcoxson (Windows, iloader 2.3.8)", "address": "https://ani.jkcoxson.com" },
+    { "name": "StikStore secondary (Windows)", "address": "https://ani2.stikstore.app" }
+  ]
+}

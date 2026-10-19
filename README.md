@@ -1,3 +1,31 @@
+# SideStore with ExtensionKit signing (sidestore-extfix)
+
+This is [SideStore](https://github.com/SideStore/SideStore) (develop `12ff39c`) with one fix: its signer
+(SideSign) also signs **ExtensionKit extensions**, which live in an app's `Extensions/` folder. Official
+SideStore only signs `PlugIns/`, so apps with an ExtensionKit extension fail to install with a free
+Apple account. [Background Sync for Immich](https://github.com/dddd-zdf/background-sync-for-immich)
+needs this. Everything else is SideStore as-is.
+
+Changes from upstream:
+- `patches/sidesign-extensions.patch`: SideSign signs `Extensions/` too (applied at build time).
+- Anisette: defaults to the Jkcoxson server and the list in `anisette-servers.json`, with Windows client
+  info, because SideStore's default servers stopped working for Apple sign-in (error 80045/503) in
+  October 2026.
+- Pairing files with both Lockdown and Remote Pairing keys (as iloader writes them) import correctly.
+
+## Install
+
+1. Install official SideStore first, following [its guide](https://docs.sidestore.io) (e.g. with iloader).
+2. Download `SideStore-<version>.ipa` from this repo's [Releases](../../releases) and open it in
+   SideStore (or install it with iloader). It replaces SideStore and keeps your apps and settings.
+3. If Apple sign-in fails: Settings > Anisette Servers, pick **Jkcoxson**; under User Customizations >
+   Anisette Client Configuration, Fetch, then Save as Overrides; reset adi.pb and sign in again.
+
+This fork follows SideStore develop until the fix is upstream. Not affiliated with the SideStore team.
+License: AGPL-3.0, same as SideStore.
+
+---
+
 # SideStore
 
 > SideStore is an *untethered, community driven* alternative app store for non-jailbroken iOS devices 

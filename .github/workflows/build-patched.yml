@@ -1,15 +1,19 @@
 name: Build patched SideStore
 
-# Copy of SideStore develop (12ff39c) with one patch for the Immich Backup app:
-# SideSign also signs ExtensionKit extensions in Extensions/ (patches/sidesign-extensions.patch).
-# Anisette defaults: Jkcoxson server, the anisette server list, Windows client info (SideStore/AppConstants.swift).
+# SideStore develop (12ff39c) with a patch so SideSign also signs ExtensionKit extensions in
+# Extensions/ (patches/sidesign-extensions.patch), needed by Background Sync for Immich.
+# Anisette defaults: Jkcoxson server, the server list in anisette-servers.json, Windows client info
+# (SideStore/AppConstants.swift). A v* tag also publishes a GitHub release with the IPA.
 on:
   workflow_dispatch:
   push:
-    branches: [immich-backup-patch]
+    branches: [main]
+    tags: ["v*"]
 
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: macos-26
     timeout-minutes: 60
     steps:
@@ -41,6 +45,14 @@ jobs:
           name: SideStore-${{ env.MARKETING_VERSION }}
           path: SideStore.ipa
           retention-days: 30
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp SideStore.ipa "SideStore-${MARKETING_VERSION}.ipa"
+          gh release create "${{ github.ref_name }}" "SideStore-${MARKETING_VERSION}.ipa" --title "SideStore ${MARKETING_VERSION}"             --notes "SideStore develop 12ff39c with SideSign signing ExtensionKit extensions (Extensions/). Install it like SideStore; see the README."
 
       - uses: actions/upload-artifact@v4
         if: failure()
